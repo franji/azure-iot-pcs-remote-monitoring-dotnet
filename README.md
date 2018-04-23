@@ -59,7 +59,7 @@ for a detailed overview of features and use cases.
 
 To get started you can follow along with the [Getting Started](#getting-started)
 for a command line deployment. You can also deploy using the web interface
-at https://azureiotsuite.com.
+at https://www.azureiotsuite.com.
 
 Getting Started
 ===============
@@ -74,26 +74,18 @@ Getting Started
     git clone --recursive https://github.com/Azure/azure-iot-pcs-remote-monitoring-dotnet.git
     ```
     If you cloned the repo without the `--recursive` flag and it's your first time updating the submodules, you can use
-    `git submodule update --init --recursive`. More information on submodules [here](https://git-scm.com/book/en/v2/Git-Tools-Submodules). 
+    `git submodule update --init --recursive`. More information on submodules [here](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
 1. Set up command line interface for deployments
+    #### Prerequisite
+    * Install [npm](https://www.npmjs.com/get-npm)
 
-
-    Mac/Linux
+    #### Windows/Mac/Linux
     
     ```
-    cd azure-iot-pcs-remote-monitoring-dotnet/cli
-    npm install
-    npm start
-    npm link
+    npm install -g iot-solutions
     ```
-    Windows
-    
-    ```
-    cd azure-iot-pcs-remote-monitoring-dotnet\cli
-    npm install
-    npm start
-    npm link
-    ```
+    #### 
+
 1. Sign into your Azure account with
     ```
     pcs login
