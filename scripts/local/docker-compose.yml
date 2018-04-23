@@ -1,12 +1,8 @@
-# This is the docker-compose script for local development.
-# For the latest version of the docker images see:
-# https://github.com/Azure/pcs-cli/blob/master/remotemonitoring/single-vm/docker-compose.dotnet.yml
-#
 # Usage:
 # - install Docker Compose, see https://docs.docker.com/compose/install
 # - open a console and `cd` into the folder that contains this file
-# - note how this file references many environment variables, either set
-#   them in the .env file or edit this file adding the values here
+# - note how the file references many environment variables, either set
+#   them in your system or edit this file adding the values here
 # - run `docker-compose up`
 # - open the browser at http://127.0.0.1:10443
 #
@@ -17,9 +13,13 @@ version: "3"
 
 services:
   reverseproxy:
-    image: azureiotpcs/remote-monitoring-nginx:testing
+    image: azureiotpcs/remote-monitoring-nginx:1.0.0-preview.5
+    container_name: reverseproxy
+    networks:
+      - mynet
     ports:
-      - "8080:10080"
+      - "443:443"
+      - "80:80"
     depends_on:
       - webui
       - auth
@@ -27,111 +27,144 @@ services:
       - devicesimulation
       - telemetry
       - config
-    volumes:
-      - ./config/nginx.conf:/app/config/nginx.conf:ro
+    #  volumes:
+    #    - /app/certs:/app/certs:ro
+    environment:
+      - PCS_AUTH_REQUIRED=false
 
   webui:
-    image: azureiotpcs/pcs-remote-monitoring-webui:testing
+    image: azureiotpcs/pcs-remote-monitoring-webui:1.0.0-preview.5
+    container_name: webui
+    networks:
+      - mynet
+    # ports:
     depends_on:
       - auth
       - iothubmanager
       - devicesimulation
       - telemetry
       - config
-  # NOTE: Volumes disabled for local development, uncomment if enabling auth
-  # volumes:
-  #   - ./webui-config.js:/app/build/webui-config.js:ro
+    # volumes:
+    #   - /app/webui-config.js:/app/build/config.js:ro
+    environment:
+      - PCS_AUTH_REQUIRED=false      
 
   auth:
     image: azureiotpcs/pcs-auth-dotnet:testing
+    container_name: auth
+    networks:
+      - mynet
+    # ports:
+      # - "9001:9001"
     environment:
       - PCS_AUTH_ISSUER
       - PCS_AUTH_AUDIENCE
-      - PCS_AUTH_REQUIRED
-      - PCS_CORS_WHITELIST
       - PCS_APPLICATION_SECRET
+      - PCS_AUTH_REQUIRED=false
+      
 
   iothubmanager:
     image: azureiotpcs/iothub-manager-dotnet:testing
+    container_name: iothubmanager
+    networks:
+      - mynet
+    # ports:
+      # - "9002:9002"
     environment:
       - PCS_IOTHUB_CONNSTRING
-      - PCS_CONFIG_WEBSERVICE_URL=http://config:9005/v1
       - PCS_AUTH_ISSUER
       - PCS_AUTH_AUDIENCE
-      - PCS_AUTH_REQUIRED
-      - PCS_CORS_WHITELIST
       - PCS_APPLICATION_SECRET
+      # TODO: the dependency on config is temporary
+      - PCS_CONFIG_WEBSERVICE_URL=http://config:9005/v1
+      - PCS_AUTH_REQUIRED=false
 
   devicesimulation:
     image: azureiotpcs/device-simulation-dotnet:testing
+    container_name: devicesimulation
+    networks:
+      - mynet
     depends_on:
       - storageadapter
+    # ports:
+      # - "9003:9003"
     environment:
       - PCS_IOTHUB_CONNSTRING
-      - PCS_STORAGEADAPTER_WEBSERVICE_URL=http://storageadapter:9022/v1
       - PCS_AUTH_ISSUER
       - PCS_AUTH_AUDIENCE
-      - PCS_AUTH_REQUIRED
-      - PCS_CORS_WHITELIST
       - PCS_APPLICATION_SECRET
-  # How one could mount custom device models
-  # NOTE: Volumes disabled for local development
-  # volumes:
-  #   - ./my-device-models:/app/data:ro
+      - PCS_STORAGEADAPTER_WEBSERVICE_URL=http://storageadapter:9022/v1
+      - PCS_AUTH_REQUIRED=false
+      # This could be used to mount custom device models into the simulation
+      #volumes:
+      #- ./custom-data:/app/data:ro
 
   telemetry:
     image: azureiotpcs/telemetry-dotnet:testing
+    container_name: telemetry
+    networks:
+      - mynet
     depends_on:
       - storageadapter
+    # ports:
+      # - "9004:9004"
     environment:
       - PCS_TELEMETRY_DOCUMENTDB_CONNSTRING
-      - PCS_STORAGEADAPTER_WEBSERVICE_URL=http://storageadapter:9022/v1
       - PCS_AUTH_ISSUER
       - PCS_AUTH_AUDIENCE
-      - PCS_AUTH_REQUIRED
-      - PCS_CORS_WHITELIST
       - PCS_APPLICATION_SECRET
+      - PCS_STORAGEADAPTER_WEBSERVICE_URL=http://storageadapter:9022/v1
+      - PCS_AUTH_REQUIRED=false
 
   config:
     image: azureiotpcs/pcs-config-dotnet:testing
+    container_name: config
+    networks:
+      - mynet
     depends_on:
       - storageadapter
-      - devicesimulation
-      - telemetry
-      - iothubmanager
+    # ports:
+      # - "9005:9005"
     environment:
+      - PCS_AZUREMAPS_KEY
+      - PCS_AUTH_ISSUER
+      - PCS_AUTH_AUDIENCE
+      - PCS_APPLICATION_SECRET
       - PCS_STORAGEADAPTER_WEBSERVICE_URL=http://storageadapter:9022/v1
       - PCS_DEVICESIMULATION_WEBSERVICE_URL=http://devicesimulation:9003/v1
       - PCS_TELEMETRY_WEBSERVICE_URL=http://telemetry:9004/v1
       - PCS_IOTHUBMANAGER_WEBSERVICE_URL=http://iothubmanager:9002/v1
-      - PCS_AZUREMAPS_KEY
-      - PCS_AUTH_ISSUER
-      - PCS_AUTH_AUDIENCE
-      - PCS_AUTH_REQUIRED
-      - PCS_CORS_WHITELIST
-      - PCS_APPLICATION_SECRET
+      - PCS_AUTH_REQUIRED=false
 
   storageadapter:
     image: azureiotpcs/pcs-storage-adapter-dotnet:testing
+    container_name: storageadapter
+    networks:
+      - mynet
+    # ports:
+      # - "9022:9022"
     environment:
       - PCS_STORAGEADAPTER_DOCUMENTDB_CONNSTRING
       - PCS_AUTH_ISSUER
       - PCS_AUTH_AUDIENCE
-      - PCS_AUTH_REQUIRED
-      - PCS_CORS_WHITELIST
       - PCS_APPLICATION_SECRET
+      - PCS_AUTH_REQUIRED=false
 
   telemetryagent:
     image: azureiotpcs/telemetry-agent-dotnet:testing
+    container_name: telemetryagent
+    networks:
+      - mynet
     depends_on:
       - telemetry
       - iothubmanager
       - config
+    # ports:
+      # - "9023:9023"
     environment:
       - PCS_TELEMETRYAGENT_DOCUMENTDB_CONNSTRING
-      - PCS_TELEMETRY_WEBSERVICE_URL=http://telemetry:9004/v1
-      - PCS_CONFIG_WEBSERVICE_URL=http://config:9005/v1
-      - PCS_IOTHUBMANAGER_WEBSERVICE_URL=http://iothubmanager:9002/v1
+      # For more info about IoT Hub react settings see
+      # https://github.com/Azure/toketi-iothubreact#iothub-configuration
       - PCS_IOTHUBREACT_AZUREBLOB_ACCOUNT
       - PCS_IOTHUBREACT_AZUREBLOB_KEY
       - PCS_IOTHUBREACT_AZUREBLOB_ENDPOINT_SUFFIX
@@ -141,6 +174,12 @@ services:
       - PCS_IOTHUBREACT_ACCESS_CONNSTRING
       - PCS_AUTH_ISSUER
       - PCS_AUTH_AUDIENCE
-      - PCS_AUTH_REQUIRED
-      - PCS_CORS_WHITELIST
       - PCS_APPLICATION_SECRET
+      - PCS_TELEMETRY_WEBSERVICE_URL=http://telemetry:9004/v1
+      - PCS_CONFIG_WEBSERVICE_URL=http://config:9005/v1
+      - PCS_IOTHUBMANAGER_WEBSERVICE_URL=http://iothubmanager:9002/v1
+      - PCS_AUTH_REQUIRED=false
+      
+networks:
+  mynet:
+    driver: bridge
