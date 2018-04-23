@@ -33,7 +33,7 @@ services:
       - PCS_AUTH_REQUIRED=false
 
   webui:
-    image: c5fcbe51ae85
+    image: azureiotpcs/pcs-remote-monitoring-webui:1.0.0-preview.4
     container_name: webui
     networks:
       - mynet
